@@ -299,6 +299,187 @@
 			check: ["Array", "Grid", "Grid3D"],
 			exemptFromNormalization: true,
 		},
+		Blocks: {
+			blank() {
+				return new Scratch.vm.tringlymanGrid.Type(
+					Scratch.vm.tringlymanGrid.Type.Blank(),
+				);
+			},
+
+			blankSize({ x, y }) {
+				if (x <= 0 || y <= 0) return;
+				return new Scratch.vm.tringlymanGrid.Type(
+					Scratch.vm.tringlymanGrid.Type.Blank(x, y),
+				);
+			},
+
+			parse({ VALUE }) {
+				return Scratch.vm.tringlymanGrid.Type.toGrid(VALUE);
+			},
+
+			currentGrid(_, { thread }) {
+				const builderIndex = thread._tringlymanGridBuilderIndex;
+				if (builderIndex && builderIndex.length > 0) {
+					return tringlymanGridType.toGrid(
+						builderIndex[builderIndex.length - 1],
+					);
+				}
+			},
+
+			builder() {
+				throw "failed to compile blocks";
+			},
+
+			builderAppend({ x, y, VALUE }, { thread }) {
+				const builderIndex = thread._tringlymanGridBuilderIndex;
+				if (builderIndex && builderIndex.length > 0) {
+					if (!(x <= 0 || y <= 0)) {
+						const result = tringlymanGridType._recalculateSize(
+							builderIndex[builderIndex.length - 1].grid,
+							Scratch.Cast.toNumber(x),
+							Scratch.Cast.toNumber(y),
+						);
+						result[Scratch.Cast.toNumber(y) - 1][Scratch.Cast.toNumber(x) - 1] =
+							VALUE;
+						builderIndex[builderIndex.length - 1].grid = result;
+						thread._tringlymanGridBuilderIndex[
+							thread._tringlymanGridBuilderIndex.length - 1
+						] = builderIndex[builderIndex.length - 1];
+					}
+				}
+			},
+
+			builderAppendEmpty({ x, y }, { thread }) {
+				const builderIndex = thread._tringlymanGridBuilderIndex;
+				if (builderIndex && builderIndex.length > 0) {
+					if (x <= 0 || y <= 0) return;
+					const result = tringlymanGridType._recalculateSize(
+						builderIndex[builderIndex.length - 1].grid,
+						Scratch.Cast.toNumber(x),
+						Scratch.Cast.toNumber(y),
+					);
+					result[Scratch.Cast.toNumber(y) - 1][Scratch.Cast.toNumber(x) - 1] =
+						undefined;
+					builderIndex[builderIndex.length - 1].grid = result;
+					thread._tringlymanGridBuilderIndex[
+						thread._tringlymanGridBuilderIndex.length - 1
+					] = builderIndex[builderIndex.length - 1];
+				}
+			},
+
+			builderSet({ grid }, { thread }) {
+				const builderIndex = thread._tringlymanGridBuilderIndex;
+				if (builderIndex && builderIndex.length > 0) {
+					builderIndex[builderIndex.length - 1] = grid;
+				}
+			},
+
+			append({ x, y, VALUE, grid }) {
+				if (x <= 0 || y <= 0) return;
+				grid ??= new tringlymanGridType(tringlymanGridType.Blank());
+				const temp = tringlymanGridType._recalculateSize(
+					grid.grid,
+					Scratch.Cast.toNumber(x),
+					Scratch.Cast.toNumber(y),
+				);
+				temp[Scratch.Cast.toNumber(y) - 1][Scratch.Cast.toNumber(x) - 1] =
+					VALUE;
+				return new tringlymanGridType(temp);
+			},
+
+			removeXY({ axis, xy, grid }) {
+				if (xy <= 0) return;
+				grid ??= new tringlymanGridType(tringlymanGridType.Blank());
+				if (axis === "y") {
+					return new tringlymanGridType(
+						grid.grid.filter((_, Y) => Y !== xy - 1).length
+							? grid.grid.filter((_, Y) => Y !== xy - 1)
+							: [[]],
+					);
+				}
+
+				if (axis === "x") {
+					return new tringlymanGridType(
+						grid.grid.map(v => v.filter((_, X) => X !== xy - 1)),
+					);
+				}
+			},
+
+			get({ x, y, grid }) {
+				if (x <= 0 || y <= 0) return;
+				grid ??= tringlymanGridType.toGrid(tringlymanGridType.Blank(1, 1).grid);
+				return tringlymanGridType.toGrid(grid).grid?.[y - 1]?.[x - 1];
+			},
+
+			length({ grid }) {
+				grid ??= tringlymanGridType.toGrid(tringlymanGridType.Blank().grid);
+				const x = grid.grid[0].length;
+				const y = grid.grid.length;
+				const ARR = Scratch.vm?.jwArray?.Type?.toArray([x, y]) ?? [x, y];
+
+				return ARR;
+			},
+
+			lengthAxis({ axis, grid }) {
+				grid ??= tringlymanGridType.toGrid(tringlymanGridType.Blank().grid);
+				const x = grid.grid[0].length;
+				const y = grid.grid.length;
+
+				switch (axis) {
+					case "x":
+						return x;
+					case "y":
+						return y;
+				}
+			},
+
+			toString({ grid, format }) {
+				return tringlymanGridType
+					.toGrid(grid)
+					.toString(Scratch.Cast.toBoolean(format));
+			},
+
+			forEachIX(_, util) {
+				return util.thread._tringlymanGridForEach &&
+					util.thread._tringlymanGridForEach[
+						util.thread._tringlymanGridForEach.length - 1
+					]
+					? util.thread._tringlymanGridForEach[
+							util.thread._tringlymanGridForEach.length - 1
+						][0]["x"]
+					: 0;
+			},
+
+			forEachIY(_, util) {
+				return util.thread._tringlymanGridForEach &&
+					util.thread._tringlymanGridForEach[
+						util.thread._tringlymanGridForEach.length - 1
+					]
+					? util.thread._tringlymanGridForEach[
+							util.thread._tringlymanGridForEach.length - 1
+						][0]["y"]
+					: 0;
+			},
+
+			forEachV(_, util) {
+				return util.thread._tringlymanGridForEach &&
+					util.thread._tringlymanGridForEach[
+						util.thread._tringlymanGridForEach.length - 1
+					]
+					? util.thread._tringlymanGridForEach[
+							util.thread._tringlymanGridForEach.length - 1
+						][1]
+					: "";
+			},
+
+			forEach() {
+				return "noop";
+			},
+
+			forEachBreak({}, util) {
+				util.stackFrame.entry = [];
+			},
+		},
 	};
 
 	class Extension {
@@ -309,6 +490,16 @@
 				"tringlymanGrid",
 				this.getCompileInfo(),
 			);
+
+			// adds dynamically the code for the blocks
+			// in case they aren't compiled
+			for (const [opcode, func] of Object.entries(
+				Scratch.vm.tringlymanGrid.Blocks,
+			)) {
+				this[opcode] = function (args, util) {
+					return func(args, util);
+				};
+			}
 		}
 		getInfo() {
 			return {
@@ -570,11 +761,115 @@
 		getCompileInfo() {
 			return {
 				ir: {
+					blank: (generator, block) => {
+						return {
+							kind: "input",
+						};
+					},
+					blankSize: (generator, block) => {
+						return {
+							kind: "input",
+							x: generator.descendInputOfBlock(block, "x"),
+							y: generator.descendInputOfBlock(block, "y"),
+						};
+					},
+					parse: (generator, block) => {
+						return {
+							kind: "input",
+							VALUE: generator.descendInputOfBlock(block, "VALUE"),
+						};
+					},
+					currentGrid: (generator, block) => {
+						return {
+							kind: "input",
+						};
+					},
 					builder: (generator, block) => {
 						generator.script.yields = true;
 						return {
 							kind: "input",
 							substack: generator.descendSubstack(block, "SUBSTACK"),
+						};
+					},
+					builderAppend: (generator, block) => {
+						return {
+							kind: "stack",
+							x: generator.descendInputOfBlock(block, "x"),
+							y: generator.descendInputOfBlock(block, "y"),
+							VALUE: generator.descendInputOfBlock(block, "VALUE"),
+						};
+					},
+					builderAppendEmpty: (generator, block) => {
+						return {
+							kind: "stack",
+							x: generator.descendInputOfBlock(block, "x"),
+							y: generator.descendInputOfBlock(block, "y"),
+						};
+					},
+					builderSet: (generator, block) => {
+						return {
+							kind: "stack",
+							grid: generator.descendInputOfBlock(block, "grid"),
+						};
+					},
+					append: (generator, block) => {
+						return {
+							kind: "input",
+							x: generator.descendInputOfBlock(block, "x"),
+							y: generator.descendInputOfBlock(block, "y"),
+							VALUE: generator.descendInputOfBlock(block, "VALUE"),
+							grid: generator.descendInputOfBlock(block, "grid"),
+						};
+					},
+					removeXY: (generator, block) => {
+						return {
+							kind: "input",
+							axis: block.fields.axis.value,
+							xy: generator.descendInputOfBlock(block, "xy"),
+							grid: generator.descendInputOfBlock(block, "grid"),
+						};
+					},
+					get: (generator, block) => {
+						return {
+							kind: "input",
+							x: generator.descendInputOfBlock(block, "x"),
+							y: generator.descendInputOfBlock(block, "y"),
+							grid: generator.descendInputOfBlock(block, "grid"),
+						};
+					},
+					length: (generator, block) => {
+						return {
+							kind: "input",
+							grid: generator.descendInputOfBlock(block, "grid"),
+						};
+					},
+					lengthAxis: (generator, block) => {
+						return {
+							kind: "input",
+							axis: block.fields.axis.value,
+							grid: generator.descendInputOfBlock(block, "grid"),
+						};
+					},
+					toString: (generator, block) => {
+						return {
+							kind: "input",
+							format: block.fields.format.value,
+							grid: generator.descendInputOfBlock(block, "grid"),
+						};
+					},
+					forEachIX: (generator, block) => {
+						return {
+							kind: "input",
+						};
+					},
+					forEachIY: (generator, block) => {
+						return {
+							kind: "input",
+						};
+					},
+					forEachV: (generator, block) => {
+						return {
+							kind: "input",
 						};
 					},
 					forEach: (generator, block) => {
@@ -587,18 +882,186 @@
 					},
 				},
 				js: {
+					blank: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.blank()`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(
+							stackSource.replaceAll("\t", ""),
+							imports.TYPE_UNKNOWN,
+						);
+					},
+					blankSize: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						const x = compiler.descendInput(node.x).asNumber();
+						const y = compiler.descendInput(node.y).asNumber();
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.blankSize({x: ${x}, y: ${y}})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(
+							stackSource.replaceAll("\t", ""),
+							imports.TYPE_UNKNOWN,
+						);
+					},
+					parse: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						const VALUE = compiler.descendInput(node.VALUE).asUnknown();
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.parse({VALUE: ${VALUE}})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(
+							stackSource.replaceAll("\t", ""),
+							imports.TYPE_UNKNOWN,
+						);
+					},
+					currentGrid: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.currentGrid(null, {thread})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
 					builder: (node, compiler, imports) => {
 						const originalSource = compiler.source;
 						compiler.source =
-							"Scratch.vm.tringlymanGrid.Type.toGrid(yield* (function*() {";
-						compiler.source += `thread._tringlymanGridBuilderIndex ??= [];`;
-						compiler.source += `thread._tringlymanGridBuilderIndex.push(new Scratch.vm.tringlymanGrid.Type(Scratch.vm.tringlymanGrid.Type.Blank()));`;
+							"Scratch.vm.tringlymanGrid.Type.toGrid(yield* (function*() {\n";
+						compiler.source += `thread._tringlymanGridBuilderIndex ??= [];\n`;
+						compiler.source += `thread._tringlymanGridBuilderIndex.push(new Scratch.vm.tringlymanGrid.Type(Scratch.vm.tringlymanGrid.Type.Blank()));\n`;
 						compiler.descendStack(
 							node.substack,
 							new imports.Frame(false, undefined, true),
 						);
-						compiler.source += `return thread._tringlymanGridBuilderIndex.pop();`;
+						compiler.source += `return thread._tringlymanGridBuilderIndex.pop();\n`;
 						compiler.source += "})())";
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
+					builderAppend: (node, compiler, imports) => {
+						const x = compiler.descendInput(node.x).asNumber();
+						const y = compiler.descendInput(node.y).asNumber();
+						const VALUE = compiler.descendInput(node.VALUE).asUnknown();
+						compiler.source += `Scratch.vm.tringlymanGrid.Blocks.builderAppend({x: ${x}, y: ${y}, VALUE: ${VALUE}}, {thread});\n`;
+					},
+					builderAppendEmpty: (node, compiler, imports) => {
+						const x = compiler.descendInput(node.x).asNumber();
+						const y = compiler.descendInput(node.y).asNumber();
+						compiler.source += `Scratch.vm.tringlymanGrid.Blocks.builderAppendEmpty({x: ${x}, y: ${y}}, {thread});\n`;
+					},
+					builderSet: (node, compiler, imports) => {
+						const grid = compiler.descendInput(node.grid).asUnknown();
+						compiler.source += `Scratch.vm.tringlymanGrid.Blocks.builderSet({grid: ${grid}}, {thread});\n`;
+					},
+					append: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						const x = compiler.descendInput(node.x).asNumber();
+						const y = compiler.descendInput(node.y).asNumber();
+						const VALUE = compiler.descendInput(node.VALUE).asUnknown();
+						const grid = compiler.descendInput(node.grid).asUnknown();
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.append({x: ${x}, y: ${y}, VALUE: ${VALUE}, grid: ${grid}})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
+					removeXY: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						const axis = node.axis;
+						const xy = compiler.descendInput(node.xy).asNumber();
+						const grid = compiler.descendInput(node.grid).asUnknown();
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.removeXY({axis: "${axis}", xy: ${xy}, grid: ${grid}})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
+					get: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						const x = compiler.descendInput(node.x).asNumber();
+						const y = compiler.descendInput(node.y).asNumber();
+						const grid = compiler.descendInput(node.grid).asUnknown();
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.get({x: ${x}, y: ${y}, grid: ${grid}})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
+					length: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						const grid = compiler.descendInput(node.grid).asUnknown();
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.length({grid: ${grid}})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
+					lengthAxis: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						const axis = node.axis;
+						const grid = compiler.descendInput(node.grid).asUnknown();
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.lengthAxis({axis: "${axis}", grid: ${grid}})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
+					toString: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						const format = node.format;
+						const grid = compiler.descendInput(node.grid).asUnknown();
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.toString({format: ${format}, grid: ${grid}})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
+					forEachIX: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.forEachIX(null, {thread})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
+					forEachIY: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.forEachIY(null, {thread})`;
+
+						const stackSource = compiler.source;
+						compiler.source = originalSource;
+						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
+					},
+					forEachV: (node, compiler, imports) => {
+						const originalSource = compiler.source;
+
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.forEachV(null, {thread})`;
+						compiler.source = `Scratch.vm.tringlymanGrid.Blocks.forEachV(null, {thread})`;
+
 						const stackSource = compiler.source;
 						compiler.source = originalSource;
 						return new imports.TypedInput(stackSource, imports.TYPE_UNKNOWN);
@@ -631,187 +1094,8 @@
 				},
 			};
 		}
-
-		blank() {
-			return new tringlymanGridType(Scratch.vm.tringlymanGrid.Type.Blank());
-		}
-
-		blankSize({ x, y }) {
-			if (x <= 0 || y <= 0) return;
-			return new tringlymanGridType(Scratch.vm.tringlymanGrid.Type.Blank(x, y));
-		}
-
-		parse({ VALUE }) {
-			return Scratch.vm.tringlymanGrid.Type.toGrid(VALUE);
-		}
-
-		currentGrid({}, { thread }) {
-			const builderIndex = thread._tringlymanGridBuilderIndex;
-			if (builderIndex && builderIndex.length > 0) {
-				return tringlymanGridType.toGrid(builderIndex[builderIndex.length - 1]);
-			} else {
-				throw "block must be inside of a builder";
-			}
-		}
-
-		builder() {
-			throw "failed to compile blocks";
-		}
-
-		builderAppend({ x, y, VALUE }, { thread }) {
-			const builderIndex = thread._tringlymanGridBuilderIndex;
-			if (builderIndex && builderIndex.length > 0) {
-				if (x <= 0 || y <= 0) return;
-				const result = tringlymanGridType._recalculateSize(
-					builderIndex[builderIndex.length - 1].grid,
-					Scratch.Cast.toNumber(x),
-					Scratch.Cast.toNumber(y),
-				);
-				result[Scratch.Cast.toNumber(y) - 1][Scratch.Cast.toNumber(x) - 1] =
-					VALUE;
-				builderIndex[builderIndex.length - 1].grid = result;
-				thread._tringlymanGridBuilderIndex[
-					thread._tringlymanGridBuilderIndex.length - 1
-				] = builderIndex[builderIndex.length - 1];
-			} else {
-				throw "block must be inside of a builder";
-			}
-		}
-
-		builderAppendEmpty({ x, y }, { thread }) {
-			const builderIndex = thread._tringlymanGridBuilderIndex;
-			if (builderIndex && builderIndex.length > 0) {
-				if (x <= 0 || y <= 0) return;
-				const result = tringlymanGridType._recalculateSize(
-					builderIndex[builderIndex.length - 1].grid,
-					Scratch.Cast.toNumber(x),
-					Scratch.Cast.toNumber(y),
-				);
-				result[Scratch.Cast.toNumber(y) - 1][Scratch.Cast.toNumber(x) - 1] =
-					undefined;
-				builderIndex[builderIndex.length - 1].grid = result;
-				thread._tringlymanGridBuilderIndex[
-					thread._tringlymanGridBuilderIndex.length - 1
-				] = builderIndex[builderIndex.length - 1];
-			} else {
-				throw "block must be inside of a builder";
-			}
-		}
-
-		builderSet({ grid }, { thread }) {
-			const builderIndex = thread._tringlymanGridBuilderIndex;
-			if (builderIndex && builderIndex.length > 0) {
-				builderIndex[builderIndex.length - 1] = grid;
-			} else {
-				throw "block must be inside of a builder";
-			}
-		}
-
-		append({ x, y, VALUE, grid }) {
-			if (x <= 0 || y <= 0) return;
-			grid ??= new tringlymanGridType(tringlymanGridType.Blank());
-			const temp = tringlymanGridType._recalculateSize(
-				grid.grid,
-				Scratch.Cast.toNumber(x),
-				Scratch.Cast.toNumber(y),
-			);
-			temp[Scratch.Cast.toNumber(y) - 1][Scratch.Cast.toNumber(x) - 1] = VALUE;
-			return new tringlymanGridType(temp);
-		}
-
-		removeXY({ axis, xy, grid }) {
-			if (xy <= 0) return;
-			grid ??= new tringlymanGridType(tringlymanGridType.Blank());
-			if (axis === "y") {
-				return new tringlymanGridType(
-					grid.grid.filter((_, Y) => Y !== xy - 1).length
-						? grid.grid.filter((_, Y) => Y !== xy - 1)
-						: [[]],
-				);
-			}
-
-			if (axis === "x") {
-				return new tringlymanGridType(
-					grid.grid.map(v => v.filter((_, X) => X !== xy - 1)),
-				);
-			}
-		}
-
-		get({ x, y, grid }) {
-			if (x <= 0 || y <= 0) return;
-			grid ??= tringlymanGridType.toGrid(tringlymanGridType.Blank(1, 1).grid);
-			return tringlymanGridType.toGrid(grid).grid?.[y - 1]?.[x - 1];
-		}
-
-		length({ grid }) {
-			grid ??= tringlymanGridType.toGrid(tringlymanGridType.Blank().grid);
-			const x = grid.grid[0].length;
-			const y = grid.grid.length;
-			const ARR = Scratch.vm?.jwArray?.Type?.toArray([x, y]) ?? [x, y];
-
-			return ARR;
-		}
-
-		lengthAxis({ axis, grid }) {
-			grid ??= tringlymanGridType.toGrid(tringlymanGridType.Blank().grid);
-			const x = grid.grid[0].length;
-			const y = grid.grid.length;
-
-			switch (axis) {
-				case "x":
-					return x;
-				case "y":
-					return y;
-			}
-		}
-
-		toString({ grid, format }) {
-			return tringlymanGridType
-				.toGrid(grid)
-				.toString(Scratch.Cast.toBoolean(format));
-		}
-
-		forEachIX({ axis }, util) {
-			return util.thread._tringlymanGridForEach &&
-				util.thread._tringlymanGridForEach[
-					util.thread._tringlymanGridForEach.length - 1
-				]
-				? util.thread._tringlymanGridForEach[
-						util.thread._tringlymanGridForEach.length - 1
-					][0]["x"]
-				: 0;
-		}
-
-		forEachIY({ axis }, util) {
-			return util.thread._tringlymanGridForEach &&
-				util.thread._tringlymanGridForEach[
-					util.thread._tringlymanGridForEach.length - 1
-				]
-				? util.thread._tringlymanGridForEach[
-						util.thread._tringlymanGridForEach.length - 1
-					][0]["y"]
-				: 0;
-		}
-
-		forEachV({}, util) {
-			return util.thread._tringlymanGridForEach &&
-				util.thread._tringlymanGridForEach[
-					util.thread._tringlymanGridForEach.length - 1
-				]
-				? util.thread._tringlymanGridForEach[
-						util.thread._tringlymanGridForEach.length - 1
-					][1]
-				: "";
-		}
-
-		forEach() {
-			return "noop";
-		}
-
-		forEachBreak({}, util) {
-			util.stackFrame.entry = [];
-		}
 	}
 
 	Scratch.extensions.register(new Extension());
 })(Scratch);
+
